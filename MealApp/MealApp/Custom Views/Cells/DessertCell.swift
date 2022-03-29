@@ -38,7 +38,7 @@ class DessertCell: UITableViewCell {
         
         dessertImageView.translatesAutoresizingMaskIntoConstraints = false
         
-        let padding: CGFloat = 8
+        let padding: CGFloat = 12
         
         NSLayoutConstraint.activate([
             dessertImageView.centerYAnchor.constraint(equalTo: centerYAnchor),

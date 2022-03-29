@@ -35,6 +35,7 @@ class DessertListVC: UIViewController {
                 let errorController = UIAlertController(title: "Something went wrong.", message: error.localizedDescription, preferredStyle: .alert)
                 self.present(errorController, animated: true)
             }
+            self.dismissLoadingView()
         }
     }
     
@@ -70,7 +71,6 @@ class DessertListVC: UIViewController {
 
 extension DessertListVC: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        print(desserts)
         return desserts.count
     }
     
@@ -82,7 +82,11 @@ extension DessertListVC: UITableViewDelegate, UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let dessert = desserts[indexPath.row]
+        let destVC  = MealDetailVC()
+        destVC.dessert = dessert
         
+        navigationController?.pushViewController(destVC, animated: true)
     }
     
     

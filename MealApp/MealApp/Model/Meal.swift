@@ -14,5 +14,5 @@ struct Meal: Codable, Hashable {
     let strMealThumb    : String
     let strYoutube      : String?
     var ingredients     : [String]?
-    var measure         : [String]?
+    var measurements    : [String]?
 }

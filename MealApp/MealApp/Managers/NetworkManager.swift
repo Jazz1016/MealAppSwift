@@ -107,7 +107,7 @@ public class NetworkManager {
                     return ""
                 })
                 
-                completed(.success(Meal(idMeal: tempMeal.idMeal, strMeal: tempMeal.strMeal, strInstructions: tempMeal.strInstructions, strMealThumb: tempMeal.strMealThumb, strYoutube: tempMeal.strYoutube, ingredients: tempIngredients, measure: tempMeasurements)))
+                completed(.success(Meal(idMeal: tempMeal.idMeal, strMeal: tempMeal.strMeal, strInstructions: tempMeal.strInstructions, strMealThumb: tempMeal.strMealThumb, strYoutube: tempMeal.strYoutube, ingredients: tempIngredients, measurements: tempMeasurements)))
             } catch {
                 completed(.failure(.thrownError(error)))
             }
