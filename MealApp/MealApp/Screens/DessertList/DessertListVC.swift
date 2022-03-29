@@ -22,20 +22,22 @@ class DessertListVC: UIViewController {
     
     func fetchDessserts(){
         showLoadingView()
-        NetworkManager.shared.fetchDesserts { [weak self] result in
-            guard let self = self else { return }
-            switch result {
-            case .success(let desserts):
-                self.desserts  = desserts
-                self.updateData(on: self.desserts)
-                DispatchQueue.main.async {
-                    self.tableView.reloadData()
+        DispatchQueue.main.async {
+            NetworkManager.shared.fetchDesserts { [weak self] result in
+                guard let self = self else { return }
+                switch result {
+                case .success(let desserts):
+                    self.desserts  = desserts
+                    self.updateData(on: self.desserts)
+                    DispatchQueue.main.async {
+                        self.tableView.reloadData()
+                    }
+                case .failure(let error):
+                    let errorController = UIAlertController(title: "Something   went wrong.", message: error.localizedDescription,  preferredStyle: .alert)
+                    self.present(errorController, animated: true)
                 }
-            case .failure(let error):
-                let errorController = UIAlertController(title: "Something went wrong.", message: error.localizedDescription, preferredStyle: .alert)
-                self.present(errorController, animated: true)
+                self.dismissLoadingView()
             }
-            self.dismissLoadingView()
         }
     }
     
