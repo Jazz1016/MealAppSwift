@@ -16,7 +16,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         window = UIWindow(frame: windowScene.coordinateSpace.bounds)
         window?.windowScene = windowScene
-        window?.rootViewController = ViewController()
+        window?.makeKeyAndVisible()
+        window?.rootViewController = configureRootVC()
+    }
+    
+    func configureRootVC() -> UINavigationController {
+        let dessertVC = DessertListVC()
+        dessertVC.title = "Desserts"
+        return UINavigationController(rootViewController: dessertVC)
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
