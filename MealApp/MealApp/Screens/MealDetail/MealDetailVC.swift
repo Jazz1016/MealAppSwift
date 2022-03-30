@@ -9,54 +9,33 @@ import UIKit
 
 class MealDetailVC: UIViewController {
     
-    class Section {
-        let title: String
-        var isOpened: Bool = false
-        
-        init(title: String, isOpened: Bool = false) {
-            self.title      = title
-            self.isOpened   = isOpened
-        }
-    }
-        
-    private var sections = [Section]()
+    var mealImageView           = UIImageView()
+    let ingredientTableView     = UITableView()
+    let scrollView              = UIScrollView()
+    let mealLabel               = MealTitleLabel(textAlignment: .left, fontSize: 20)
+    let instructionsTitleLabel  = MealTitleLabel(textAlignment: .center, fontSize: 16)
+    let instructionsLabel       = MealBodyLabel(textAlignment: .left)
     
-    let mealImageView       = UIImageView()
-    let ingredientTableView = UITableView()
-    let scrollView          = UIScrollView()
-    let mealLabel           = MealTitleLabel(textAlignment: .left, fontSize: 20)
-    let instructionsLabel   = MealBodyLabel(textAlignment: .left)
-    var meal: Meal?
-    var dessert: Dessert? {
-        didSet {
-            guard let dessert = dessert else { return }
-            showLoadingView()
-            DispatchQueue.main.async {
-                NetworkManager.shared.fetchDessert(mealID: dessert.idMeal) {
-                    [weak self] result in
-                    guard let self = self else { return }
-                    switch result {
-                    case .success(let meal):
-                        DispatchQueue.main.async {
-                            self.meal = meal
-                            self.setupUIElements()
-                        }
-                    case .failure(let error):
-                        let errorController = UIAlertController(title: "Something went wrong.", message: error.localizedDescription, preferredStyle: .alert)
-                        self.present(errorController, animated: true)
-                    }
-                    self.dismissLoadingView()
-                }
-            }
-        }
-    }
+    var viewModel = MealDetailVM()
+    
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
+        
+        viewModel.mealName.bind { [weak self] mealName in
+            self?.mealLabel.text = mealName
+        }
+        
+        viewModel.instructions.bind { [weak self] instructions in
+            self?.instructionsLabel.text = instructions
+        }
+        
+        viewModel.mealImage.bind { [weak self] mealImage in
+            self?.mealImageView.image = mealImage
+        }
         configureTableView()
         layoutUI()
-        sections = [Section(title: "Section1")]
+        instructionsTitleLabel.text = "Instructions"
     }
     
     func layoutUI(){
@@ -64,7 +43,7 @@ class MealDetailVC: UIViewController {
         view.addSubview(mealLabel)
         view.addSubview(scrollView)
         view.addSubview(ingredientTableView)
-        view.addSubview(instructionsLabel)
+        scrollView.addSubview(instructionsLabel)
         
         mealImageView.translatesAutoresizingMaskIntoConstraints         = false
         mealLabel.translatesAutoresizingMaskIntoConstraints             = false
@@ -72,12 +51,21 @@ class MealDetailVC: UIViewController {
         ingredientTableView.translatesAutoresizingMaskIntoConstraints   = false
         instructionsLabel.translatesAutoresizingMaskIntoConstraints     = false
         
-//        mealImageView.backgroundColor       = .blue
-//        instructionsLabel.backgroundColor   = .green
-//        ingredientTableView.backgroundColor = .systemMint
-//        mealLabel.backgroundColor           = .systemOrange
-        scrollView.backgroundColor = .systemGray6
-//
+        view.backgroundColor                        = .systemBackground
+        
+        scrollView.backgroundColor                  = .systemGray6
+        scrollView.showsVerticalScrollIndicator     = true
+
+        ingredientTableView.rowHeight               = 40
+        ingredientTableView.backgroundColor         = .systemBackground
+        
+        instructionsLabel.adjustsFontSizeToFitWidth = true
+        instructionsLabel.numberOfLines             = 0
+
+        ingredientTableView.reloadData()
+        
+        scrollView.backgroundColor      = .systemGray6
+        
         let padding: CGFloat    = 20
         let rowHeight: CGFloat  = 400
         
@@ -95,17 +83,18 @@ class MealDetailVC: UIViewController {
             scrollView.topAnchor.constraint(equalTo: mealImageView.bottomAnchor, constant: padding),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: padding),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -padding),
-            scrollView.heightAnchor.constraint(equalTo: instructionsLabel.heightAnchor, multiplier: 1.1),
+            scrollView.heightAnchor.constraint(equalToConstant: 200),
             
             instructionsLabel.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 8),
-            instructionsLabel.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 8),
-            instructionsLabel.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -8),
+            instructionsLabel.widthAnchor.constraint(equalTo: scrollView.widthAnchor, multiplier: 0.9),
+            instructionsLabel.centerXAnchor.constraint(equalTo: scrollView.centerXAnchor, constant: 1),
             instructionsLabel.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -8),
             
-            ingredientTableView.topAnchor.constraint(equalTo: instructionsLabel.bottomAnchor, constant: padding), ///FIX MEEEEEE
+            ingredientTableView.topAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: padding),
             ingredientTableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: padding),
             ingredientTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -padding),
-            ingredientTableView.heightAnchor.constraint(greaterThanOrEqualToConstant: rowHeight)
+            ingredientTableView.heightAnchor.constraint(greaterThanOrEqualToConstant: rowHeight),
+            ingredientTableView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -36)
         ])
     }
     
@@ -114,34 +103,20 @@ class MealDetailVC: UIViewController {
         ingredientTableView.dataSource  = self
         
         ingredientTableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        ingredientTableView.register(IngredientHeadCell.self, forCellReuseIdentifier: IngredientHeadCell.reuseID)
         ingredientTableView.register(IngredientCell.self, forCellReuseIdentifier: IngredientCell.reuseID)
-    }
-    
-    func setupUIElements() {
-        guard let meal = meal else { return }
-        mealImageView.downloadImage(from: meal.strMealThumb)
-        
-        ingredientTableView.rowHeight = 80
-        ingredientTableView.backgroundColor = .systemBackground
-        
-        mealLabel.text = meal.strMeal
-        instructionsLabel.text = meal.strInstructions
-        instructionsLabel.adjustsFontSizeToFitWidth = true
-        instructionsLabel.numberOfLines = 0
-        
-        ingredientTableView.reloadData()
     }
 
 }//End of Class
 
 extension MealDetailVC: UITableViewDataSource, UITableViewDelegate {
     func numberOfSections(in tableView: UITableView) -> Int {
-        return sections.count
+        return viewModel.sections.count
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        guard let ingredients = meal?.ingredients else { return 1 }
-        let section = sections[section]
+        guard let ingredients = viewModel.meal?.ingredients else { return 1 }
+        let section = viewModel.sections[section]
         
         if section.isOpened {
             return ingredients.count + 2
@@ -153,17 +128,23 @@ extension MealDetailVC: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if indexPath.row == 0 {
             let section = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+            section.backgroundColor = .systemGray4
             section.textLabel?.text = "Ingredients"
-//            section.textLabel?.
+            section.accessoryType = .detailButton
             return section
         }
-        guard let ingredients = meal?.ingredients,
-              let measurements = meal?.measurements else { return UITableViewCell() }
+        
+        guard let ingredients = viewModel.meal?.ingredients,
+              let measurements = viewModel.meal?.measurements else { return UITableViewCell() }
+        
         if indexPath.row == 1 {
-            let sectionHead = tableView.dequeueReusableCell(withIdentifier: IngredientCell.reuseID, for: indexPath) as! IngredientCell
+            let sectionHead = tableView.dequeueReusableCell(withIdentifier: IngredientHeadCell.reuseID, for: indexPath) as! IngredientHeadCell
             sectionHead.set(ingredient: "Ingredient", measurement: "Measurement")
+            sectionHead.backgroundColor = .systemGray4
             return sectionHead
         }
+        
+        print("ingredients", ingredients[indexPath.row - 2], indexPath.row)
         let cell = tableView.dequeueReusableCell(withIdentifier: IngredientCell.reuseID, for: indexPath) as! IngredientCell
         
         cell.set(ingredient: ingredients[indexPath.row - 2], measurement: measurements[indexPath.row - 2])
@@ -173,9 +154,8 @@ extension MealDetailVC: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
-        sections[indexPath.section].isOpened = !sections[indexPath.section].isOpened
+        viewModel.sections[indexPath.section].isOpened = !viewModel.sections[indexPath.section].isOpened
         tableView.reloadSections([indexPath.section], with: .none)
     }
     
-    
-}
+}//End of Extension
