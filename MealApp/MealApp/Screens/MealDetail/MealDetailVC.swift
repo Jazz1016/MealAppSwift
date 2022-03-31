@@ -17,19 +17,15 @@ class MealDetailVC: UIViewController {
     let instructionsLabel       = MealBodyLabel(textAlignment: .left)
     
     var viewModel = MealDetailVM()
-    
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         viewModel.mealName.bind { [weak self] mealName in
             self?.mealLabel.text = mealName
         }
-        
         viewModel.instructions.bind { [weak self] instructions in
             self?.instructionsLabel.text = instructions
         }
-        
         viewModel.mealImage.bind { [weak self] mealImage in
             self?.mealImageView.image = mealImage
         }

@@ -16,17 +16,7 @@ class DessertListVC: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         viewModel.fetchDessserts(viewController: self, tableView: tableView)
-        configureTableView()
-    }
-    
-    func configureTableView(){
-        view.addSubview(tableView)
-        tableView.frame = view.bounds
-        tableView.rowHeight = 80
-        tableView.delegate = self
-        tableView.dataSource = self
-        
-        tableView.register(DessertCell.self, forCellReuseIdentifier: DessertCell.reuseID)
+        viewModel.configureTableView(viewController: self, tableView: tableView)
     }
 
 }//End of Class

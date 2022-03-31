@@ -12,31 +12,42 @@ public class NetworkManager {
     
     let cache                   = NSCache<NSString, UIImage>()
     
-    private let baseUrl = "https://www.themealdb.com/api/json/v1/1/"
+    enum URLStrings {
+        static let baseUrl             = "https://www.themealdb.com/api/json/v1/1/"
+        static let dessertsPath     = "filter.php"
+        static let mealPath         = "lookup.php"
+    }
+    
+    var baseUrl = URL(string: URLStrings.baseUrl)
+    
     //Fetch Desserts https://www.themealdb.com/api/json/v1/1/filter.php?c=Dessert
-    //Fetch Dessert  https://www.themealdb.com/api/json/v1/1/lookup.php?i=53049
+    //Fetch Meal     https://www.themealdb.com/api/json/v1/1/lookup.php?i=53049
     
     private init() {}
     
     func fetchDesserts(completed: @escaping (Result<[Dessert], NetworkError>) -> Void){
-        let endpoint = baseUrl + "filter.php?c=Dessert"
-        guard let url = URL(string: endpoint) else { return }
+        guard var baseUrl = baseUrl else {
+            completed(.failure(.invalidURL))
+            return
+        }
+        baseUrl.appendPathComponent(URLStrings.dessertsPath)
+        var components = URLComponents(url: baseUrl, resolvingAgainstBaseURL: true)
+        let queryItem = URLQueryItem(name: "c", value: "Dessert")
+        components?.queryItems = [queryItem]
+        guard let url = components?.url else { return completed(.failure(.invalidURL)) }
         
         let task = URLSession.shared.dataTask(with: url) { data, response, error in
             if let error = error {
                 completed(.failure(.thrownError(error)))
             }
-            
             guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
                 completed(.failure(.unableToDecode))
                 return
             }
-            
             guard let data = data else {
                 completed(.failure(.noData))
                 return
             }
-            
             do {
                 let decoder = JSONDecoder()
                 let topLevelObject = try decoder.decode([String : [Dessert]].self, from: data)
@@ -45,30 +56,36 @@ public class NetworkManager {
             } catch {
                 completed(.failure(.thrownError(error)))
             }
-            
         }
         task.resume()
     }
 
-    func fetchDessert(mealID: String, completed: @escaping (Result<Meal, NetworkError>) -> Void) {
-        let endpoint = baseUrl + "lookup.php?i=\(mealID)"
-        guard let url = URL(string: endpoint) else { return }
+    func fetchMeal(mealID: String, completed: @escaping (Result<Meal, NetworkError>) -> Void) {
+        guard var baseUrl = baseUrl else {
+            completed(.failure(.invalidURL))
+            return
+        }
+        baseUrl.appendPathComponent(URLStrings.mealPath)
+        var components = URLComponents(url: baseUrl, resolvingAgainstBaseURL: true)
+        let queryItem = URLQueryItem(name: "i", value: mealID)
+        components?.queryItems = [queryItem]
+        guard let url = components?.url else {
+            completed(.failure(.invalidURL))
+            return
+        }
 
         let task = URLSession.shared.dataTask(with: url) { data, response, error in
             if let error = error {
                 completed(.failure(.thrownError(error)))
             }
-
             guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
                 completed(.failure(.unableToDecode))
                 return
             }
-
             guard let data = data else {
                 completed(.failure(.noData))
                 return
             }
-
             do {
                 let decoder = JSONDecoder()
                 let topLevelObject = try decoder.decode([String : [Meal]].self, from: data)
@@ -91,8 +108,11 @@ public class NetworkManager {
                 
                 let tempIngredients: [String] = ingredients.sorted { lhs, rhs in
                     return lhs.keys.first ?? "" < rhs.keys.first ?? ""
-                }.map({ el in
+                }.compactMap({ el in
                     for (_, value) in el {
+                        if "\(type(of: value))" == "NSNull" {
+                            return nil
+                        }
                         return "\(value)"
                     }
                     return ""
@@ -100,8 +120,11 @@ public class NetworkManager {
                 
                 let tempMeasurements: [String] = measurements.sorted { lhs, rhs in
                     return lhs.keys.first ?? "" < rhs.keys.first ?? ""
-                }.map({ el in
+                }.compactMap({ el in
                     for (_, value) in el {
+                        if "\(type(of: value))" == "NSNull" {
+                            return nil
+                        }
                         return "\(value)"
                     }
                     return ""
