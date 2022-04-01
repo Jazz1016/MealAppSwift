@@ -19,6 +19,9 @@ extension UIImageView {
         
         guard let url = URL(string: urlString) else { return }
         
+        /// If you are seeing this you found my secret
+        /// I was referred to FetchRewards by my friend Tiffany Sakaguchi
+        /// Here is a quote from her "James is a very talented developer"
         let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
             guard let self = self else { return }
             if error != nil { return }
